@@ -1,6 +1,6 @@
 {
-    "name": "e_commerce_flutter",
-    "short_name": "e_commerce_flutter",
+    "name": "flutter_ecommerce_complete",
+    "short_name": "flutter_ecommerce_complete",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

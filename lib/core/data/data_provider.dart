@@ -1,13 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../models/category.dart';
 import '../../models/api_response.dart';
 import '../../models/brand.dart';
+import '../../models/order.dart';
 import '../../models/poster.dart';
 import '../../models/product.dart';
 import '../../models/sub_category.dart';
+import '../../models/user.dart';
 import '../../services/http_services.dart';
+import '../../utility/constants.dart';
 import '../../utility/snack_bar_helper.dart';
 
 class DataProvider extends ChangeNotifier {
@@ -31,11 +35,17 @@ class DataProvider extends ChangeNotifier {
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
   List<Product> get products => _filteredProducts;
+  List<Product> get allProducts => _allProducts;
 
 
   List<Poster> _allPosters = [];
   List<Poster> _filteredPosters = [];
   List<Poster> get posters => _filteredPosters;
+
+
+  List<Order> _allOrders = [];
+  List<Order> _filteredOrders = [];
+  List<Order> get orders => _filteredOrders;
 
 
 
@@ -45,7 +55,6 @@ class DataProvider extends ChangeNotifier {
     getAllSubCategory();
     getAllBrands();
     getAllPosters();
-
   }
 
   Future<List<Category>> getAllCategory({bool showSnack = false}) async {
@@ -79,6 +88,7 @@ class DataProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
 
   Future<List<SubCategory>> getAllSubCategory({bool showSnack = false}) async {
     try {
@@ -146,6 +156,7 @@ class DataProvider extends ChangeNotifier {
 
 
 
+
   Future<void> getAllProduct({bool showSnack = false}) async {
     try {
       Response response = await service.getItems(endpointUrl: 'products');
@@ -183,7 +194,6 @@ class DataProvider extends ChangeNotifier {
   }
 
 
-
   Future<List<Poster>> getAllPosters({bool showSnack = false}) async {
     try {
       Response response = await service.getItems(endpointUrl: 'posters');
@@ -204,56 +214,48 @@ class DataProvider extends ChangeNotifier {
     return _filteredPosters;
   }
 
-  void filterPosters(String keyword) {
-    if (keyword.isEmpty) {
-      _filteredPosters = List.from(_allPosters);
-    } else {
-      final lowerKeyword = keyword.toLowerCase();
-      _filteredPosters = _allPosters.where((poster) {
-        return (poster.posterName ?? '').toLowerCase().contains(lowerKeyword);
-      }).toList();
+
+
+
+  double calculateDiscountPercentage(num originalPrice, num? discountedPrice) {
+    if (originalPrice <= 0) {
+      throw ArgumentError('Original price must be greater than zero.');
     }
-    notifyListeners();
+
+    //? Ensure discountedPrice is not null; if it is, default to the original price (no discount)
+    num finalDiscountedPrice = discountedPrice ?? originalPrice;
+
+    if (finalDiscountedPrice > originalPrice) {
+      throw ArgumentError('Discounted price must not be greater than the original price.');
+    }
+
+    double discount = ((originalPrice - finalDiscountedPrice) / originalPrice) * 100;
+
+    //? Return the discount percentage as an integer
+    return discount;
   }
 
 
-
-  void filterProductsByQuantity(String productQntType) {
-    if (productQntType == 'All Product') {
-      _filteredProducts = List.from(_allProducts);
-    } else if (productQntType == 'Out of Stock') {
-      _filteredProducts = _allProducts.where((product) {
-        //? Filter products with quantity equal to 0 (out of stock)
-        return product.quantity != null && product.quantity == 0;
-      }).toList();
-    } else if (productQntType == 'Limited Stock') {
-      _filteredProducts = _allProducts.where((product) {
-        //? Filter products with quantity equal to 1 (limited stock)
-        return product.quantity != null && product.quantity == 1;
-      }).toList();
-    } else if (productQntType == 'Other Stock') {
-      _filteredProducts = _allProducts.where((product) {
-        //? Filter products with quantity not equal to 0 or 1 (other stock)
-        return product.quantity != null && product.quantity != 0 && product.quantity != 1;
-      }).toList();
-    } else {
-      _filteredProducts = List.from(_allProducts);
-    }
-    notifyListeners();
-  }
-
-  int calculateOrdersWithQuantity({int? quantity}) {
-    int totalOrders = 0;
-    //? if targetQuantity is null it return total product
-    if (quantity == null) {
-      totalOrders = _allProducts.length;
-    } else {
-      for (Product product in _allProducts) {
-        if (product.quantity != null && product.quantity == quantity) {
-          totalOrders += 1; // Increment the count if quantity meets or exceeds the target
-        }
+  Future<List<Order>> getAllOrderByUser(User? user,{bool showSnack = false}) async {
+    try {
+      String userId = user?.sId ?? '';
+      Response response = await service.getItems(endpointUrl: 'orders/orderByUserId/$userId');
+      if (response.isOk) {
+        ApiResponse<List<Order>> apiResponse = ApiResponse<List<Order>>.fromJson(
+          response.body,
+              (json) => (json as List).map((item) => Order.fromJson(item)).toList(),
+        );
+        print(apiResponse.message);
+        _allOrders = apiResponse.data ?? [];
+        _filteredOrders = List.from(_allOrders);
+        notifyListeners();
+        if (showSnack) SnackBarHelper.showSuccessSnackBar(apiResponse.message);
       }
+    } catch (e) {
+      if (showSnack) SnackBarHelper.showErrorSnackBar(e.toString());
+      rethrow;
     }
-    return totalOrders;
+    return _filteredOrders;
   }
+
 }
