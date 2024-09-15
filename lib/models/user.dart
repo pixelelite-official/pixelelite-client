@@ -4,15 +4,19 @@ class User {
   String? password;
   String? createdAt;
   String? updatedAt;
+  String? accessToken;
+  String? refreshToken;
   int? iV;
 
   User(
       {this.sId,
-        this.name,
-        this.password,
-        this.createdAt,
-        this.updatedAt,
-        this.iV});
+      this.name,
+      this.password,
+      this.accessToken,
+      this.refreshToken,
+      this.createdAt,
+      this.updatedAt,
+      this.iV});
 
   User.fromJson(Map<String, dynamic> json) {
     sId = json['_id'];
@@ -20,6 +24,8 @@ class User {
     password = json['password'];
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
+    accessToken = json['accessToken'];
+    refreshToken = json['refreshToken'];
     iV = json['__v'];
   }
 
@@ -30,6 +36,8 @@ class User {
     data['password'] = this.password;
     data['createdAt'] = this.createdAt;
     data['updatedAt'] = this.updatedAt;
+    data['accessToken'] = this.accessToken;
+    data['refreshToken'] = this.refreshToken;
     data['__v'] = this.iV;
     return data;
   }
